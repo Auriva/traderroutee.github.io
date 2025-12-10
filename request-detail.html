@@ -39,6 +39,9 @@ global trade marketplace
 <meta name="twitter:description" id="twDesc" content="Trade request details on Trader Route">
 <meta name="twitter:image" id="twImage" content="https://www.traderroute.com/assets/logos.png">
 
+  <link id="canonicalLink" rel="canonical" href="https://www.traderroute.com/request-detail.html">
+
+
 
  
 
@@ -312,8 +315,20 @@ async function sendMessageToUser() {
 
     <script>
 async function loadRequestDetail() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const id = urlParams.get("id");
+  // Hem ?id= parametresini hem de /requests/slug-17623....html yapısını destekle
+  function getRequestId() {
+    const params = new URLSearchParams(window.location.search);
+    const qId = params.get("id");
+    if (qId) return qId;
+
+    // Örnek path: /requests/furniture-manufacturing-indonesia-17623560124323.html
+    const path = window.location.pathname; 
+    const lastPart = path.split("/").filter(Boolean).pop() || "";
+    const m = lastPart.match(/(\d+)\.html?$/);
+    return m ? m[1] : null;
+  }
+
+  const id = getRequestId();
   if (!id) return;
 
   try {
@@ -350,20 +365,38 @@ if (!imgUrl) {
   imgUrl = "https://www.traderroute.com/assets/logos.png";
 }
 
-    // ✅ Dynamic Meta + JSON-LD Schema
-document.title = `${req.title} | ${req.country} Buyer Request | Trader Route`;
-document.querySelector("#dynamicDesc").content = req.description || "Global trade request on Trader Route";
+       // ✅ Dynamic Meta + SEO-friendly URL
+    document.title = `${req.title} | ${req.country} Buyer Request | Trader Route`;
+    document.querySelector("#dynamicDesc").content =
+      req.description || "Global trade request on Trader Route";
 
-document.querySelector("#canonicalLink").href = `https://www.traderroute.com/request-detail.html?id=${id}`;
+    // SEO slug üret (title + country)
+    const slugify = (str = "") =>
+      String(str)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
 
-document.querySelector("#ogUrl").content = `https://www.traderroute.com/request-detail.html?id=${id}`;
-document.querySelector("#ogTitle").content = req.title;
-document.querySelector("#ogDesc").content = req.description;
-document.querySelector("#ogImage").content = imgUrl || "https://www.traderroute.com/assets/logos.png";
+    const titleSlug   = slugify(req.title);
+    const countrySlug = slugify(req.country);
+    const prettyUrl   =
+      `https://www.traderroute.com/requests/${titleSlug}-${countrySlug}-${id}.html`;
 
-document.querySelector("#twTitle").content = req.title;
-document.querySelector("#twDesc").content = req.description;
-document.querySelector("#twImage").content = imgUrl || "https://www.traderroute.com/assets/logos.png";
+    // Canonical ve sosyal meta
+    const canon = document.querySelector("#canonicalLink");
+    if (canon) canon.href = prettyUrl;
+
+    document.querySelector("#ogUrl").content   = prettyUrl;
+    document.querySelector("#ogTitle").content = req.title;
+    document.querySelector("#ogDesc").content  = req.description;
+    document.querySelector("#ogImage").content =
+      imgUrl || "https://www.traderroute.com/assets/logos.png";
+
+    document.querySelector("#twTitle").content = req.title;
+    document.querySelector("#twDesc").content  = req.description;
+    document.querySelector("#twImage").content =
+      imgUrl || "https://www.traderroute.com/assets/logos.png";
+
 
 // ✅ Create dynamic JSON-LD Product + Offer schema
 const schema = {
@@ -378,7 +411,7 @@ const schema = {
     "price": "0",
     "priceCurrency": "USD",
     "availability": "InStock",
-    "url": `https://www.traderroute.com/request-detail.html?id=${id}`
+    "url": prettyUrl
   }
 };
 
